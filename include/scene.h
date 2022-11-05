@@ -13,6 +13,8 @@
 #include "shader.h"
 #include "cl_particales.h"
 
+#define WINDOW_NAME "Particles System"
+
 class GLEngine
 {
 public:
@@ -42,9 +44,13 @@ public:
 	std::vector<float>	m_array_vertex;
 	std::vector<int>	m_array_indexes;
 
+	bool				m_is_fps_enable = 1;
+
 	void InitScene();
 	void AddObject(Objects obj);
 	void Loop();
+
+	void PrintFPS();
 
 	int GetShaderID(){return m_shaders.GetShaderId();};
 };

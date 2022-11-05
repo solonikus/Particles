@@ -75,4 +75,5 @@ glm::mat4 Camera::SetLookMatrix(glm::vec3 rotate, glm::vec3 up, glm::vec3 eye)
 {
     // m_look_at = glm::lookAt(rotate, rotate + up, eye); //1 - rotate, 2 vverx, 3 napravlenie
     m_look_at = glm::lookAt(rotate, up, eye); //1 - rotate, 2 vverx, 3 napravlenie
+    return glm::mat4(1.f);
 }

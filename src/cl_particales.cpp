@@ -34,8 +34,7 @@ void CLEngine::InitParticles(cl_GLuint vbo)
 		CL_WGL_HDC_KHR, reinterpret_cast<cl_context_properties>(wglGetCurrentDC()),
 		0};
 	cl::Context context(devices[0], props);
-	cl::CommandQueue queue(context, devices[0]);
-	cl::BufferGL mem_buf;
+	queue = cl::CommandQueue(context, devices[0]);
 	mem_buf = cl::BufferGL(context, CL_MEM_READ_WRITE, vbo, &ret);
 	// mem_buf = cl::Buffer(context, CL_MEM_READ_WRITE, CL_COUNT_PARTICLES * sizeof(cl_float3), NULL, &ret);
 	cl::Program prog;
@@ -45,18 +44,36 @@ void CLEngine::InitParticles(cl_GLuint vbo)
 	cl::Program::Sources source(1, {sourceCode.c_str(), sourceCode.length() + 1});
 	cl::Program program = cl::Program(context, source);
 	program.build(devices);
-	cl::Kernel kernel(program, "build_cube");
-	kernel.setArg(0, mem_buf);
-	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(CL_COUNT_PARTICLES), cl::NDRange(128));
+	cl::Kernel k_init(program, "build_cube");
+	k_moving_wa = cl::Kernel(program, "move_without_atractor");
+	k_init.setArg(0, mem_buf);
+	k_moving_wa.setArg(0, mem_buf);
+	queue.enqueueNDRangeKernel(k_init, cl::NullRange, cl::NDRange(CL_COUNT_PARTICLES), cl::NDRange(128));
 	queue.finish();
-	vec3 = new glm::vec4[CL_COUNT_PARTICLES];
+
+	// vec3 = new vec3_print[CL_COUNT_PARTICLES];
 	// queue.enqueueReadBuffer(mem_buf, CL_TRUE, 0, CL_COUNT_PARTICLES * sizeof(cl_float3), vec3);
-	int i;
-	i = 0;
+	// for (int i = 0; i < 10; i++)
+	// {
+	// 	std::cout << "# "<< i << " x: " << vec3[i].x << " z: " << vec3[i].z << "\n";
+	// }
+	// int i;
+	// i = 0;
 }
 
-void CLEngine::GetMatPosicion(int i, glm::mat4 &model)
+void CLEngine::Rotate(double time)
 {
-	glm::vec3 vector3{vec3[i].x, vec3[i].y, vec3[i].z};
-	model = glm::translate(glm::mat4(1.0f), vector3);
+	k_moving_wa.setArg(0, mem_buf);
+	k_moving_wa.setArg(1, time);
+	queue.enqueueNDRangeKernel(k_moving_wa, cl::NullRange, cl::NDRange(CL_COUNT_PARTICLES), cl::NDRange(128));
+	queue.finish();
+
+	// vec3 = new vec3_print[CL_COUNT_PARTICLES];
+	// queue.enqueueReadBuffer(mem_buf, CL_TRUE, 0, CL_COUNT_PARTICLES * sizeof(cl_float3), vec3);
+	// for (int i = 0; i < 10; i++)
+	// {
+	// 	std::cout << "# "<< i << " x: " << vec3[i].x << " z: " << vec3[i].z << "\n";
+	// }
+	// int i;
+	// i = 0;
 }

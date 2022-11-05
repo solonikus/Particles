@@ -46,6 +46,18 @@ static void DrawCube(std::vector<float> &array_vertex, std::vector<int> &array_i
     array_indexes.insert(array_indexes.end(), indexes.begin(), indexes.end());
 }
 
+static float GetFPS()
+{
+	static double prev_time;
+	double shot_time;
+	float count_fps;
+
+	shot_time = glfwGetTime() - prev_time;
+	count_fps = 1.f / shot_time;	
+	prev_time = glfwGetTime();
+	return count_fps;
+}
+
 /*---Engine---*/
 
 GLEngine::GLEngine()
@@ -57,7 +69,7 @@ GLEngine::GLEngine()
 #ifdef __APPLE__
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
-    window = glfwCreateWindow(g_width, g_height, "Particle System", nullptr, nullptr);
+    window = glfwCreateWindow(g_width, g_height, WINDOW_NAME, nullptr, nullptr);
     if (window == nullptr)
 	{
 		glfwTerminate();
@@ -113,10 +125,10 @@ void Scene::InitScene()
 	// AddObject(e_Cube);
 
 	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-	glBufferData(GL_ARRAY_BUFFER, CL_COUNT_PARTICLES * 4 * sizeof(float), NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, CL_COUNT_PARTICLES * 6 * sizeof(float), NULL, GL_DYNAMIC_DRAW);
 	// glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
 	// glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_array_indexes.size() * sizeof(int), m_array_indexes.data(), GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0);
 	glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 	// glBindVertexArray(0);
@@ -149,8 +161,15 @@ void Scene::Loop()
 	// m_objects[0].Scale(glm::vec3(1.0f));
 	
 	glUseProgram(GetShaderID());
+	m_camera.SetLookMatrix(glm::vec3(0.0f, 0.0f,  5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetProjMatrix(), "project");
+	m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
+	m_shaders.SetMatrixIn(GetShaderID(), glm::mat4(1.0f), "transform");
+	// m_camera.SetLookMatrix(glm::vec3(0.0f, 0.0f,  0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::mat4 model;
+	glPointSize(1);
+	m_camera.SetLookMatrix(glm::vec3(0.0, 5.0, 0.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -161,21 +180,23 @@ void Scene::Loop()
 		// {
 		// 	m_shaders.SetMatrixIn(GetShaderID(), obj.GetObjMatrix(), "transform");
 		// }
-		glPointSize(1);
  		glBindVertexArray(m_vao);
-		m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
-		m_shaders.SetMatrixIn(GetShaderID(), glm::mat4(1.0f), "transform");
-		
-		const float radius = 5.0f;
-		const float speed = 0.5f;
-		float camX = sin(glfwGetTime() * speed) * radius;
-		float camZ = cos(glfwGetTime() * speed) * radius;
-		m_camera.SetLookMatrix(glm::vec3(camX, 0.0f,  camZ), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		int i = 0;
+		m_particles.Rotate(glfwGetTime());
+
+		// m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
+		// m_shaders.SetMatrixIn(GetShaderID(), glm::mat4(1.0f), "transform");		
+		// const float radius = 5.0f;
+		// const float speed = 0.5f;
+		// float camX = sin(glfwGetTime() * speed) * radius;
+		// float camZ = cos(glfwGetTime() * speed) * radius;
+		// m_camera.SetLookMatrix(glm::vec3(camX, camZ,  0.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		// m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
+
 		glDrawArrays(GL_POINTS, 0, CL_COUNT_PARTICLES);
+		PrintFPS();
 
 		// for (int i = 0; i < CL_COUNT_PARTICLES; i++)
-		// {
+		// { 
 		// 	// glm::mat4 model = m_particles.GetMatPosicion(i);
 		// 	// model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
 		// 	m_shaders.SetMatrixIn(GetShaderID(), m_particles.GetMatPosicion(i), "transform");
@@ -184,4 +205,16 @@ void Scene::Loop()
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
+}
+
+void Scene::PrintFPS()
+{
+	static double prev_time = 0;
+	float fps = GetFPS();
+	if ((glfwGetTime() - prev_time) < 1)
+		return;
+	prev_time = glfwGetTime();
+	std::string title_name;
+	title_name = std::string(WINDOW_NAME) + ("    ") + ("FPS: ") + std::to_string(fps);
+	glfwSetWindowTitle(window, title_name.c_str());
 }

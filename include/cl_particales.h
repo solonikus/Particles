@@ -9,18 +9,33 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#define CL_COUNT_PARTICLES 1000000
+#define CL_COUNT_PARTICLES 100000
+
+typedef struct 
+{
+    float x;
+    float y;
+    float z;
+    float s_x;
+    float s_y;
+    float s_z;
+} vec3_print;
 
 class CLEngine
 {
 private:
-    glm::vec4 *vec3;
+    vec3_print *vec3;
 public:
     CLEngine();
 
-    void InitParticles(cl_GLuint vbo);
+    cl::CommandQueue queue;
+    cl::Kernel k_moving_wa;
+    cl::BufferGL mem_buf;
 
-    glm::vec4 GetVec3Array(int i){return vec3[i];};
+    void InitParticles(cl_GLuint vbo);
+    void Rotate(double time);
+
+    // glm::vec4 GetVec3Array(int i){return vec3[i];};
     void GetMatPosicion(int i, glm::mat4 &model);
 };
 
