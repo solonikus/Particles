@@ -20,12 +20,15 @@ __kernel void build_cube(__global vec3 *pos)
     pos[i].x = rand(213123 * i);
     pos[i].y = rand(545668 * i);
     pos[i].z = rand(127395 * i);
+    pos[i].x = 1;
+    pos[i].y = 1;
+    pos[i].z = 1;
     // pos[i].s_x = atan(pos[i].x / pos[i].z);
     // pos[i].s_y = atan(pos[i].x / pos[i].z);
     // pos[i].s_z = atan(pos[i].z / pos[i].x);
-    pos[i].s_x = 0.001;
+    pos[i].s_x = 0;
     pos[i].s_y = 0;
-    pos[i].s_z = 0.001;
+    pos[i].s_z = 0;
 }
 
 // __kernel void move_without_atractor(__global vec3 *pos, double time)
@@ -40,45 +43,6 @@ __kernel void build_cube(__global vec3 *pos)
 //     pos[i].z = cos(time + pos[i].s_x) * radius;
 // }
 
-// __kernel void move_without_atractor(__global vec3 *pos, double time)
-// {
-//     int i = get_global_id(0);
-
-//     float radius = sqrt((pos[i].x * pos[i].x) + (pos[i].z * pos[i].z));
-//     float procent = (0.001 / radius * 100) / 100;
-//     float3 grav, velo;
-//     grav.x = (fabs(pos[i].x) - fabs(pos[i].x * procent)) * (pos[i].x > 0 ? 1 : -1);
-//     // grav.y = pos[i].y - pos[i].y * procent;
-//     grav.z = (fabs(pos[i].z) - fabs(pos[i].z * procent)) * (pos[i].z > 0 ? 1 : -1);
-
-
-//     // float xa = pos[i].x;
-//     // float ya = pos[i].z;
-//     // float xb = grav.x;
-//     // float yb = grav.z;
-//     // float x2x1 = xa - xb;
-//     // float y2y1 = ya - yb;
-//     // // float x2x1 = pos[i].x - grav.x;
-//     // // float y2y1 = pos[i].z - grav.z;
-//     // // float ab   = sqrt(x2x1*x2x1 + y2y1*y2y1);
-//     // float ab   = 0.001;
-//     // float v1x  = (xa - xb) / ab;
-//     // float v1y  = (ya - yb) / ab;
-//     // float v3x  = v1y  * 0.001;
-//     // float v3y  = v1x  * 0.001;
-//     // float xc = xb + v3x;
-//     // float yc = yb + v3y;
-//     // velo.x = xc;
-//     // velo.y = 0;
-//     // velo.z = yc;
-
-//     pos[i].x = grav.x + pos[i].s_x;
-//     // pos[i].y = grav.y;
-//     pos[i].z = grav.z + pos[i].s_z;
-//     // pos[i].x = grav.x;
-//     // // pos[i].y = grav.y;
-//     // pos[i].z = grav.z;
-// }
 
 // Треугольник. Прямоугольный. АВС. В - прямой угол.
 // Вычисление координаты 3-й вершины С <xc_, yc_> по координатам вершин А <xa_, ya_>, В <xb_, yb_>
@@ -86,7 +50,7 @@ __kernel void build_cube(__global vec3 *pos)
 __kernel void move_without_atractor(__global vec3 *pos, double time)
 {
     int i = get_global_id(0);
-    float a1 = 0.05;
+    float a1 = 0.001;
 
     // float radius = sqrt((pos[i].x * pos[i].x) + (pos[i].z * pos[i].z));
     // float procent = (0.001 / radius * 100) / 100;
@@ -109,11 +73,28 @@ __kernel void move_without_atractor(__global vec3 *pos, double time)
     pos[i].x = new_x;
     pos[i].z = new_z;
     
-    radius = sqrt((pos[i].x * pos[i].x) + (pos[i].z * pos[i].z));
-    float procent = a1 / radius / 100;
+    float new_radius = sqrt((pos[i].x * pos[i].x) + (pos[i].z * pos[i].z));
+    a1 = radius - new_radius;
+    float procent = a1 / new_radius;
     float3 grav;
     grav.x = (fabs(pos[i].x) - fabs(pos[i].x * procent)) * (pos[i].x > 0 ? 1 : -1);
     grav.z = (fabs(pos[i].z) - fabs(pos[i].z * procent)) * (pos[i].z > 0 ? 1 : -1);
     pos[i].x = grav.x;
     pos[i].z = grav.z;
+
+    if (i == 10)
+    {
+        printf("x = %g , z = %g , len = %g, a1=%f", pos[i].x, pos[i].z, sqrt((pos[i].x * pos[i].x) + (pos[i].z * pos[i].z)), a1);
+    }
+}
+
+__kernel void move_without_atractor1(__global vec3 *pos, double time)
+{
+    int i = get_global_id(0);
+    float a1 = 0.0001;
+
+    if (pos[i].s_x == 0 && pos[i].s_y == 0)
+    {
+        
+    }
 }

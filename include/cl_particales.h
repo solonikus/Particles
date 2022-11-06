@@ -9,7 +9,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#define CL_COUNT_PARTICLES 100000
+#define CL_COUNT_PARTICLES 1000
 
 typedef struct 
 {
