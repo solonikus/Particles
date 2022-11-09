@@ -23,16 +23,16 @@ __kernel void build_cube(__global vec3 *pos)
     pos[i].x = rand(213123 * i);
     pos[i].y = rand(545668 * i);
     pos[i].z = rand(127395 * i);
-    pos[i].x = 1;
-    pos[i].y = 1;
-    pos[i].z = 1;
+    // pos[i].x = 1;
+    // pos[i].y = 1;
+    // pos[i].z = 1;
     // pos[i].s_x = atan(pos[i].x / pos[i].z);
     // pos[i].s_y = atan(pos[i].x / pos[i].z);
     // pos[i].s_z = atan(pos[i].z / pos[i].x);
     pos[i].s_x = 0;
     pos[i].s_y = 0;
     pos[i].s_z = 0;
-    // new_vectors_casatel(pos, i);
+    new_vectors_casatel(pos, i);
     // gravity(pos, i);
 }
 
@@ -95,7 +95,7 @@ __kernel void move_without_atractor1(__global vec3 *pos, double time)
 
 void new_vectors_casatel(__global vec3 *pos, int i)
 {
-    float a1 = 0.001; //ускорение(касательная)
+    float a1 = 0.0001; //ускорение(касательная)
     float a = pos[i].z; float b = pos[i].x;
 	int sign_a = a >= 0 ? 1 : -1; int sign_b = b >= 0 ? 1 : -1;
 	float radius = sqrt((a * a) + (b * b));
@@ -117,13 +117,16 @@ void new_vectors_casatel(__global vec3 *pos, int i)
 
 void new_vectors(__global vec3 *pos, int i)
 {
-
+    // float new_x = pos[i].x + pos[i].s_x;
+    // float new_z = pos[i].z + pos[i].s_z;
+    // pos[i].s_x = new_x - pos[i].x;
+    // pos[i].s_z = new_z - pos[i].z;
 }
 
 
 void gravity(__global vec3 *pos, int i)
 {
-    float a1 = 0.00001;
+    float a1 = 0.00000001;
     // a1 = pos[i].s_y;
     int sign_x = pos[i].x >= 0 ? -1 : 1;
     int sign_z = pos[i].z >= 0 ? -1 : 1;
@@ -134,22 +137,29 @@ void gravity(__global vec3 *pos, int i)
     float new_x = a1 * sin((angle_a) * M_PI / 180) * sign_x;
     pos[i].s_x += new_x;
     pos[i].s_z += new_z;
-    // if (i == 10)
-    // {
-    //     printf("x = %g , z = %g , new_x = %g , new_z = %g", pos[i].x, pos[i].z, new_x , new_z);
-    // }
+    if (i == 10)
+    {
+        printf("x = %g , z = %g , new_x = %g , new_z = %g", pos[i].x, pos[i].z, pos[i].s_x , pos[i].s_z);
+    }
 }
 
 __kernel void move_without_atractor(__global vec3 *pos, double time)
 {
     int i = get_global_id(0);
-    new_vectors(pos, i);
-    new_vectors_casatel(pos, i);
-    gravity(pos, i);
-    if (i == 10)
+
+    if (fabs(pos[i].x) < 0.001 && fabs(pos[i].z) < 0.001)
     {
-        printf("x = %g , z = %g , len = %g", pos[i].x, pos[i].z, sqrt((pos[i].x * pos[i].x) + (pos[i].z * pos[i].z)));
+        pos[i].x = 0;
+        pos[i].z = 0;
+        return;
     }
+    new_vectors(pos, i);
+    // new_vectors_casatel(pos, i);
+    gravity(pos, i);
+    // if (i == 10)
+    // {
+    //     printf("x = %g , z = %g , len = %g", pos[i].x, pos[i].z, sqrt((pos[i].x * pos[i].x) + (pos[i].z * pos[i].z)));
+    // }
     pos[i].x += pos[i].s_x;
     pos[i].z += pos[i].s_z;
 
