@@ -45,9 +45,10 @@ void CLEngine::InitParticles(cl_GLuint vbo)
 	cl::Program program = cl::Program(context, source);
 	program.build(devices);
 	cl::Kernel k_init(program, "build_cube");
-	k_moving_wa = cl::Kernel(program, "move_without_atractor");
+	k_moving_wa = cl::Kernel(program, "move_with_atractor");
+	k_move_x = cl::Kernel(program, "move_x");
+	k_move_y = cl::Kernel(program, "move_y");
 	k_init.setArg(0, mem_buf);
-	k_moving_wa.setArg(0, mem_buf);
 	queue.enqueueNDRangeKernel(k_init, cl::NullRange, cl::NDRange(CL_COUNT_PARTICLES), cl::NDRange(128));
 	queue.finish();
 
@@ -61,10 +62,11 @@ void CLEngine::InitParticles(cl_GLuint vbo)
 	// i = 0;
 }
 
-void CLEngine::Rotate(double time)
+void CLEngine::Main(double time, scene_settings settings)
 {
 	k_moving_wa.setArg(0, mem_buf);
 	k_moving_wa.setArg(1, time);
+	k_moving_wa.setArg(2, settings);
 	queue.enqueueNDRangeKernel(k_moving_wa, cl::NullRange, cl::NDRange(CL_COUNT_PARTICLES), cl::NDRange(128));
 	queue.finish();
 
@@ -76,4 +78,22 @@ void CLEngine::Rotate(double time)
 	// }
 	// int i;
 	// i = 0;
+}
+
+void CLEngine::Rotate(bool x, float angle)
+{
+	if (x)
+	{
+		k_move_x.setArg(0, mem_buf);
+		k_move_x.setArg(1, angle);
+		queue.enqueueNDRangeKernel(k_move_x, cl::NullRange, cl::NDRange(CL_COUNT_PARTICLES), cl::NDRange(128));
+		queue.finish();
+	}
+	else
+	{
+		k_move_y.setArg(0, mem_buf);
+		k_move_y.setArg(1, angle);
+		queue.enqueueNDRangeKernel(k_move_y, cl::NullRange, cl::NDRange(CL_COUNT_PARTICLES), cl::NDRange(128));
+		queue.finish();
+	}
 }

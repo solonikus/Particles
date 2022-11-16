@@ -11,10 +11,11 @@
 
 #include "emuns.h"
 
+
 class Object
 {
 public:
-    Object() = delete;
+    Object();
     Object(Objects obj);
     Object(Objects obj, float size);
 	~Object();
@@ -26,7 +27,6 @@ public:
     glm::mat4 GetObjMatrix();
 
 private:
-    Objects     m_type;
     glm::mat4   m_position;
 
 };
@@ -37,9 +37,10 @@ public:
 	Camera();
 	~Camera(){};
 
-    glm::mat4 GetProjMatrix();
-    glm::mat4 GetLookMatrix();
-    glm::mat4 SetLookMatrix(glm::vec3 rotate, glm::vec3 up, glm::vec3 eye);
+    glm::mat4   GetProjMatrix();
+    glm::mat4   GetLookMatrix();
+    glm::mat4   SetLookMatrix(glm::vec3 rotate, glm::vec3 up, glm::vec3 eye);
+    glm::vec3   m_angles;
 
 private:
 	glm::mat4	m_look_at;

@@ -15,6 +15,7 @@
 
 #define WINDOW_NAME "Particles System"
 
+
 class GLEngine
 {
 public:
@@ -27,7 +28,8 @@ public:
 private:
 
 	void InputKeys(GLFWscrollfun, GLFWmousebuttonfun, GLFWcursorposfun, GLFWkeyfun);
-	void BindKeys(int);
+	void MouseMove(GLFWwindow* window, double x, double y);
+	void MouseButtonCallback(GLFWwindow *window, int button, int action, int mode);
 };
 
 class Scene : public GLEngine
@@ -36,7 +38,7 @@ public:
 	Scene();
 	~Scene();
 
-	std::vector<Object> m_objects;
+	Object				m_object;
 	ShaderManage		m_shaders;
 	Camera				m_camera;
 	CLEngine			m_particles;
@@ -53,6 +55,8 @@ public:
 	void PrintFPS();
 
 	int GetShaderID(){return m_shaders.GetShaderId();};
+
+	void BindKeys(int);
 };
 
 #endif //SCENE_H

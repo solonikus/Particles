@@ -84,22 +84,45 @@ GLEngine::GLEngine()
 	std::cout << glGetString(GL_RENDERER) << std::endl;
 }
 
+static void MouseMoves(GLFWwindow* window, double xpos, double ypos)
+{
+
+}
+
 void GLEngine::InputKeys(GLFWscrollfun scroll, GLFWmousebuttonfun mouse, GLFWcursorposfun pointer, GLFWkeyfun key)
 {
 	glfwSetScrollCallback(window, scroll);
-	glfwSetMouseButtonCallback(window, mouse);
-	glfwSetCursorPosCallback(window, pointer);
+	glfwSetMouseButtonCallback(window,
+						[](GLFWwindow *window, int button, int action, int mode)
+						{
+							GLEngine *self = static_cast<GLEngine*>(glfwGetWindowUserPointer(window));
+							self->MouseButtonCallback(window, button, action, mode);
+						});
 	glfwSetKeyCallback(window,
                         [](GLFWwindow* window, int key, int scancode, int action, int mode)
 						{
-							GLEngine *self = static_cast<GLEngine*>(glfwGetWindowUserPointer(window));
+							Scene *self = static_cast<Scene*>(glfwGetWindowUserPointer(window));
 							self->BindKeys(key);
 						});
 }
 
-void GLEngine::BindKeys(int key)
+void GLEngine::MouseButtonCallback(GLFWwindow *window, int button, int action, int mode)
 {
-    return;
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    {
+		glfwSetCursorPosCallback(window,
+					[](GLFWwindow* window, double x, double y)
+					{
+						GLEngine *self = static_cast<GLEngine*>(glfwGetWindowUserPointer(window));
+						self->MouseMove(window, x, y);
+					});
+	}
+}
+
+void GLEngine::MouseMove(GLFWwindow* window, double x, double y)
+{
+	int i;
+	i = 0;
 }
 
 /*---Scene---*/
@@ -108,6 +131,10 @@ Scene::Scene()
 {
 	glEnable(GL_DEPTH_TEST);
     glGenVertexArrays(1, &m_vao);
+	glfwSetWindowUserPointer(window, this);
+	// settings.gravity_point.x = 0;
+	// settings.gravity_point.y = 0;
+	// settings.gravity_point.z = 0;
 }
 
 Scene::~Scene()
@@ -138,20 +165,20 @@ void Scene::InitScene()
 
 void Scene::AddObject(Objects obj)
 {
-	switch (obj)
-	{
-	case e_Ball:
-		m_objects.emplace_back(e_Ball);
-		break;
-	case e_Cube:
-		m_objects.emplace_back(e_Cube);
-		break;
-	case e_Plane:
-		m_objects.emplace_back(e_Plane);
-		break;	
-	default:
-		break;
-	}
+	// switch (obj)
+	// {
+	// case e_Ball:
+	// 	m_objects.emplace_back(e_Ball);
+	// 	break;
+	// case e_Cube:
+	// 	m_objects.emplace_back(e_Cube);
+	// 	break;
+	// case e_Plane:
+	// 	m_objects.emplace_back(e_Plane);
+	// 	break;	
+	// default:
+	// 	break;
+	// }
 }
 
 void Scene::Loop()
@@ -161,14 +188,11 @@ void Scene::Loop()
 	// m_objects[0].Scale(glm::vec3(1.0f));
 	
 	glUseProgram(GetShaderID());
-	m_camera.SetLookMatrix(glm::vec3(0.0f, 0.0f,  5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetProjMatrix(), "project");
-	m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
-	m_shaders.SetMatrixIn(GetShaderID(), glm::mat4(1.0f), "transform");
 	// m_camera.SetLookMatrix(glm::vec3(0.0f, 0.0f,  0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	glm::mat4 model;
+	m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetProjMatrix(), "project");
+	m_shaders.SetMatrixIn(GetShaderID(), glm::mat4(1.0f), "transform");
 	glPointSize(1);
-	m_camera.SetLookMatrix(glm::vec3(0.0, 5.0, 0.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	// m_camera.SetLookMatrix(glm::vec3(5.0, 0.0, 0.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
 
 	while (!glfwWindowShouldClose(window))
@@ -181,16 +205,19 @@ void Scene::Loop()
 		// 	m_shaders.SetMatrixIn(GetShaderID(), obj.GetObjMatrix(), "transform");
 		// }
  		glBindVertexArray(m_vao);
-		m_particles.Rotate(glfwGetTime());
+		// glm::mat4 trans = glm::mat4(1.0f);
+		// trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
+		// trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		// m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
-		// m_shaders.SetMatrixIn(GetShaderID(), glm::mat4(1.0f), "transform");		
+		// m_shaders.SetMatrixIn(GetShaderID(), trans, "transform");
 		// const float radius = 5.0f;
 		// const float speed = 0.5f;
 		// float camX = sin(glfwGetTime() * speed) * radius;
-		// float camZ = cos(glfwGetTime() * speed) * radius;
-		// m_camera.SetLookMatrix(glm::vec3(camX, camZ,  0.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		// m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
+		// float camZ = cos(glfwGetTime() * speed) * radius;	
+		// m_camera.SetLookMatrix(glm::vec3(camX, camZ, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		// m_camera.SetLookMatrix(m_camera.GetCameraView(), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
 
 		glDrawArrays(GL_POINTS, 0, CL_COUNT_PARTICLES);
 		PrintFPS();
@@ -217,4 +244,43 @@ void Scene::PrintFPS()
 	std::string title_name;
 	title_name = std::string(WINDOW_NAME) + ("    ") + ("FPS: ") + std::to_string(fps);
 	glfwSetWindowTitle(window, title_name.c_str());
+}
+
+void Scene::BindKeys(int key)
+{
+	auto update = [&](float angleX, float angleY)
+	{
+		const float radius = 5.0f;
+		m_camera.m_angles.x += angleX;
+		m_camera.m_angles.y += angleY;
+		if (m_camera.m_angles.x > 89.0)
+		{
+			m_camera.m_angles.x = 89.0;
+		}
+		else if (m_camera.m_angles.x < -89.0)
+		{
+			m_camera.m_angles.x = -89.0;
+		}
+		float camX = cos(glm::radians(m_camera.m_angles.x)) * cos(glm::radians(m_camera.m_angles.y)) * radius;
+		float camY = sin(glm::radians(m_camera.m_angles.x)) * radius;
+		float camZ = cos(glm::radians(m_camera.m_angles.x)) * sin(glm::radians(m_camera.m_angles.y)) * radius;
+		m_camera.SetLookMatrix({camX, camY, camZ}, {0.0f, 0.0f, 0.0f}, {0.0, 1.0, 0.0});
+	};
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+	{
+		update(1.0, 0.0);
+	}
+	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+	{
+		update(-1.0, 0.0);
+	}
+	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+	{
+		update(0.0, 1.0);
+	}
+	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+	{
+		update(0.0, -1.0);
+	}
+	m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
 }

@@ -21,6 +21,11 @@ typedef struct
     float s_z;
 } vec3_print;
 
+struct scene_settings
+{
+	cl_float3 gravity_point;
+};
+
 class CLEngine
 {
 private:
@@ -29,11 +34,12 @@ public:
     CLEngine();
 
     cl::CommandQueue queue;
-    cl::Kernel k_moving_wa;
+    cl::Kernel k_moving_wa, k_move_x, k_move_y;
     cl::BufferGL mem_buf;
 
     void InitParticles(cl_GLuint vbo);
-    void Rotate(double time);
+    void Main(double time, scene_settings settings);
+    void Rotate(bool x, float angle);
 
     // glm::vec4 GetVec3Array(int i){return vec3[i];};
     void GetMatPosicion(int i, glm::mat4 &model);
