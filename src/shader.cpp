@@ -18,7 +18,7 @@ ShaderManage::ShaderManage()
     // Компилирование нашей шейдерной программы
 
     // Вершинный шейдер
-    std::string shader_source(readFile("E:\\CodeBase\\ProjectRepos\\ft_newton\\shaders\\standart.vs"));
+    std::string shader_source(readFile("E:\\CodeBase\\School21\\Particles\\shaders\\standart.vs"));
     const char* const_shader_source = shader_source.c_str();
     int vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &const_shader_source, NULL);
@@ -35,7 +35,7 @@ ShaderManage::ShaderManage()
     }
  
     // Фрагментный шейдер
-    shader_source = readFile("E:\\CodeBase\\ProjectRepos\\ft_newton\\shaders\\standart.fs");
+    shader_source = readFile("E:\\CodeBase\\School21\\Particles\\shaders\\standart.fs");
     const_shader_source = shader_source.c_str();
     int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &const_shader_source, NULL);
@@ -69,4 +69,9 @@ ShaderManage::ShaderManage()
 void ShaderManage::SetMatrixIn(int id, glm::mat4 matrix, std::string name)
 {
     glUniformMatrix4fv(glGetUniformLocation(id, name.c_str()), 1, GL_FALSE, glm::value_ptr(matrix));
+}
+
+void ShaderManage::SetVectorIn(int id, glm::vec4 vec, std::string name)
+{
+    glUniform4f(glGetUniformLocation(id, name.c_str()), vec.x, vec.y, vec.z, vec.w);
 }

@@ -46,6 +46,41 @@ static void DrawCube(std::vector<float> &array_vertex, std::vector<int> &array_i
     array_indexes.insert(array_indexes.end(), indexes.begin(), indexes.end());
 }
 
+static void DrawSphere(int x, int y, std::vector<float> &vertices, std::vector<int> &indices, float size)
+{
+	for (int i = 0; i <= x; ++i)
+	{
+		float V   = i / (float) x;
+		float phi = V * glm::pi <float> ();
+
+		// Loop Through Slices
+		for (int j = 0; j <= y; ++j){
+
+			float U = j / (float) y;
+			float theta = U * (glm::pi <float> () * 2.0f);
+
+			// Calc The Vertex Positions
+			float x = cosf(theta) * sinf(phi);
+			float y = cosf(phi);
+			float z = sinf(theta) * sinf(phi);
+
+			// Push Back Vertex Data
+			glm::vec3 point = glm::vec3(x, y, z) * size;
+			vertices.push_back(point.x); vertices.push_back(point.y); vertices.push_back(point.z);
+		}
+	}
+	for (int i = 0; i < y * x + y; ++i)
+	{
+		indices.push_back (i);
+		indices.push_back (i + y + 1);
+		indices.push_back (i + y);
+
+		indices.push_back (i + y + 1);
+		indices.push_back (i);
+		indices.push_back (i + 1);
+	}
+}
+
 static float GetFPS()
 {
 	static double prev_time;
@@ -84,18 +119,13 @@ GLEngine::GLEngine()
 	std::cout << glGetString(GL_RENDERER) << std::endl;
 }
 
-static void MouseMoves(GLFWwindow* window, double xpos, double ypos)
-{
-
-}
-
 void GLEngine::InputKeys(GLFWscrollfun scroll, GLFWmousebuttonfun mouse, GLFWcursorposfun pointer, GLFWkeyfun key)
 {
 	glfwSetScrollCallback(window, scroll);
 	glfwSetMouseButtonCallback(window,
 						[](GLFWwindow *window, int button, int action, int mode)
 						{
-							GLEngine *self = static_cast<GLEngine*>(glfwGetWindowUserPointer(window));
+							Scene *self = static_cast<Scene*>(glfwGetWindowUserPointer(window));
 							self->MouseButtonCallback(window, button, action, mode);
 						});
 	glfwSetKeyCallback(window,
@@ -106,31 +136,13 @@ void GLEngine::InputKeys(GLFWscrollfun scroll, GLFWmousebuttonfun mouse, GLFWcur
 						});
 }
 
-void GLEngine::MouseButtonCallback(GLFWwindow *window, int button, int action, int mode)
-{
-	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-    {
-		glfwSetCursorPosCallback(window,
-					[](GLFWwindow* window, double x, double y)
-					{
-						GLEngine *self = static_cast<GLEngine*>(glfwGetWindowUserPointer(window));
-						self->MouseMove(window, x, y);
-					});
-	}
-}
-
-void GLEngine::MouseMove(GLFWwindow* window, double x, double y)
-{
-	int i;
-	i = 0;
-}
-
 /*---Scene---*/
 
 Scene::Scene()
 {
 	glEnable(GL_DEPTH_TEST);
     glGenVertexArrays(1, &m_vao);
+	glGenVertexArrays(1, &m_vao2);
 	glfwSetWindowUserPointer(window, this);
 	// settings.gravity_point.x = 0;
 	// settings.gravity_point.y = 0;
@@ -147,20 +159,35 @@ void Scene::InitScene()
 {
 	glBindVertexArray(m_vao);
 	glGenBuffers(1, &m_vbo);
-	// glGenBuffers(1, &m_ebo);
 	// DrawCube(m_array_vertex, m_array_indexes);
 	// AddObject(e_Cube);
 
 	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-	glBufferData(GL_ARRAY_BUFFER, CL_COUNT_PARTICLES * 6 * sizeof(float), NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, CL_COUNT_PARTICLES * 6 * sizeof(float), NULL, GL_STREAM_DRAW);
 	// glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
 	// glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_array_indexes.size() * sizeof(int), m_array_indexes.data(), GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0);
 	glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-	// glBindVertexArray(0);
-
+	glBindVertexArray(0);
 	m_particles.InitParticles(m_vbo);
+
+
+	glBindVertexArray(m_vao2);
+	glGenBuffers(1, &m_vbo_sphere);
+	glGenBuffers(1, &m_ebo);
+	glBindBuffer(GL_ARRAY_BUFFER, m_vbo_sphere);
+	std::vector<float> vertex;
+	std::vector<int> index;
+	DrawSphere(8, 8, vertex, index, 0.03f);
+	size_indexes = index.size();
+	glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(float), vertex.data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, index.size() * sizeof(int), index.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
 }
 
 void Scene::AddObject(Objects obj)
@@ -194,17 +221,34 @@ void Scene::Loop()
 	glPointSize(1);
 	// m_camera.SetLookMatrix(glm::vec3(5.0, 0.0, 0.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
-
+	settings.gravity_point.x = 0;
+	settings.gravity_point.y = 0;
+	settings.gravity_point.z = 0;
+	m_camera.m_angles.x = 0;
+	m_camera.m_angles.y = 0;
+	// m_shaders.SetVectorIn(GetShaderID(), glm::vec4(1.0f, 0.5f, 0.2f, 1.0f), "color");
 	while (!glfwWindowShouldClose(window))
 	{
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		Draw();
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+	}
+}
+
+void Scene::Draw()
+{
+	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// for (auto obj : m_objects)
 		// {
 		// 	m_shaders.SetMatrixIn(GetShaderID(), obj.GetObjMatrix(), "transform");
 		// }
- 		glBindVertexArray(m_vao);
+
+	m_particles.Main(glfwGetTime(), settings);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable( GL_BLEND );
+ 	glBindVertexArray(m_vao);
 		// glm::mat4 trans = glm::mat4(1.0f);
 		// trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
 		// trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -217,10 +261,14 @@ void Scene::Loop()
 		// float camZ = cos(glfwGetTime() * speed) * radius;	
 		// m_camera.SetLookMatrix(glm::vec3(camX, camZ, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		// m_camera.SetLookMatrix(m_camera.GetCameraView(), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
-
-		glDrawArrays(GL_POINTS, 0, CL_COUNT_PARTICLES);
-		PrintFPS();
+		// m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
+	m_shaders.SetVectorIn(GetShaderID(), glm::vec4(1.0f, 0.5f, 0.2f, 0.7f), "color");
+	glDrawArrays(GL_POINTS, 0, CL_COUNT_PARTICLES);
+	glBindVertexArray(m_vao2);
+	m_shaders.SetVectorIn(GetShaderID(), glm::vec4(1.0f, 1.0f, 1.0f, 0.3f), "color");
+	glDrawElements(GL_TRIANGLES, size_indexes, GL_UNSIGNED_INT, 0);
+	glDisable(GL_BLEND);
+	PrintFPS();
 
 		// for (int i = 0; i < CL_COUNT_PARTICLES; i++)
 		// { 
@@ -229,9 +277,6 @@ void Scene::Loop()
 		// 	m_shaders.SetMatrixIn(GetShaderID(), m_particles.GetMatPosicion(i), "transform");
 		// 	glDrawArrays(GL_POINTS, 0, 1);
 		// }
-		glfwSwapBuffers(window);
-		glfwPollEvents();
-	}
 }
 
 void Scene::PrintFPS()
@@ -265,6 +310,8 @@ void Scene::BindKeys(int key)
 		float camY = sin(glm::radians(m_camera.m_angles.x)) * radius;
 		float camZ = cos(glm::radians(m_camera.m_angles.x)) * sin(glm::radians(m_camera.m_angles.y)) * radius;
 		m_camera.SetLookMatrix({camX, camY, camZ}, {0.0f, 0.0f, 0.0f}, {0.0, 1.0, 0.0});
+		// glm::vec3 norm = glm::normalize(glm::vec3(camX, camY, camZ));
+		// printf("x = %g, y = %g, z = %g\n", camX, camY, camZ);
 	};
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
 	{
@@ -283,4 +330,32 @@ void Scene::BindKeys(int key)
 		update(0.0, -1.0);
 	}
 	m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
+}
+
+void Scene::MouseButtonCallback(GLFWwindow *window, int button, int action, int mode)
+{
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    {
+		glfwSetCursorPosCallback(window,
+					[](GLFWwindow* window, double x, double y)
+					{
+						Scene *self = static_cast<Scene*>(glfwGetWindowUserPointer(window));
+						self->MouseMove(window, x, y);
+					});
+	}
+}
+
+void Scene::MouseMove(GLFWwindow* window, double x, double y)
+{
+	float z;
+	int rect[4];
+	glGetIntegerv(GL_VIEWPORT, rect);
+	y = rect[3] - y - 1;
+	glReadPixels(x, y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
+	glm::vec4 view = {rect[0],rect[1],rect[2],rect[3]};
+	// printf("x = %g, y = %g\n", x,y);
+	// printf("x = %d, y = %d, z = %d, w = %d\n", rect[0],rect[1],rect[2],rect[3]);
+	glm::vec3 out = glm::unProject(glm::vec3(x,y,z), glm::mat4(1.0f) * m_camera.GetLookMatrix(), m_camera.GetProjMatrix(), view);
+	// Draw();
+	// printf("x = %g, y = %g, z = %g\n", out.x,out.y,out.z);
 }

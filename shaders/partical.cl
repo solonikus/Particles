@@ -173,7 +173,7 @@ __kernel void move_with_atractor(__global vec3 *pos, double time, float3 grav_po
 	// 	return;
 	// }
 	// new_vectors_casatel(pos, i);
-	// gravity(pos, i, grav_point);
+	gravity(pos, i, grav_point);
 	// if (i == 10)
 	// {
 	//     printf("x = %g , z = %g , len = %g", pos[i].x, pos[i].z, sqrt((pos[i].x * pos[i].x) + (pos[i].z * pos[i].z)));

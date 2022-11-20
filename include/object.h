@@ -41,10 +41,11 @@ public:
     glm::mat4   GetLookMatrix();
     glm::mat4   SetLookMatrix(glm::vec3 rotate, glm::vec3 up, glm::vec3 eye);
     glm::vec3   m_angles;
+    glm::mat4   m_proj_matrix;
 
 private:
 	glm::mat4	m_look_at;
-    glm::mat4   m_proj_matrix;
+    // glm::mat4   m_proj_matrix;
 };
 
 #endif //OBJECT_H

@@ -18,6 +18,7 @@ public:
 
     int GetShaderId(){return m_shader_program;};
     void SetMatrixIn(int id, glm::mat4 matrix, std::string name);
+    void SetVectorIn(int id, glm::vec4 matrix, std::string name);
 
 private:
     int m_shader_program;

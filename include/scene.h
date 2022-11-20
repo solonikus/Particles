@@ -22,14 +22,13 @@ public:
 	GLEngine();
 	~GLEngine(){};
 
-	GLuint m_vao, m_vbo, m_ebo;
+	GLuint m_vao, m_vao2,  m_vbo, m_ebo, m_vbo_sphere;
+	int size_indexes;
 	GLFWwindow   *window;
 
 private:
 
 	void InputKeys(GLFWscrollfun, GLFWmousebuttonfun, GLFWcursorposfun, GLFWkeyfun);
-	void MouseMove(GLFWwindow* window, double x, double y);
-	void MouseButtonCallback(GLFWwindow *window, int button, int action, int mode);
 };
 
 class Scene : public GLEngine
@@ -46,17 +45,21 @@ public:
 	std::vector<float>	m_array_vertex;
 	std::vector<int>	m_array_indexes;
 
+	scene_settings		settings;
 	bool				m_is_fps_enable = 1;
 
 	void InitScene();
 	void AddObject(Objects obj);
 	void Loop();
+	void Draw();
 
 	void PrintFPS();
 
 	int GetShaderID(){return m_shaders.GetShaderId();};
 
 	void BindKeys(int);
+	void MouseMove(GLFWwindow* window, double x, double y);
+	void MouseButtonCallback(GLFWwindow *window, int button, int action, int mode);
 };
 
 #endif //SCENE_H
