@@ -46,12 +46,12 @@ public:
 	std::vector<int>	m_array_indexes;
 
 	scene_settings		settings;
-	bool				m_is_fps_enable = 1;
+	bool				m_is_fps_enable = 1, m_is_grav_center_vis = 1;
 
 	void InitScene();
 	void AddObject(Objects obj);
 	void Loop();
-	void Draw();
+	void Draw(char mode = 0);
 
 	void PrintFPS();
 

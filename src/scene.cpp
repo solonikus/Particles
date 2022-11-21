@@ -134,6 +134,12 @@ void GLEngine::InputKeys(GLFWscrollfun scroll, GLFWmousebuttonfun mouse, GLFWcur
 							Scene *self = static_cast<Scene*>(glfwGetWindowUserPointer(window));
 							self->BindKeys(key);
 						});
+	glfwSetCursorPosCallback(window,
+						[](GLFWwindow* window, double x, double y)
+						{
+							Scene *self = static_cast<Scene*>(glfwGetWindowUserPointer(window));
+							self->MouseMove(window, x, y);
+						});
 }
 
 /*---Scene---*/
@@ -235,7 +241,7 @@ void Scene::Loop()
 	}
 }
 
-void Scene::Draw()
+void Scene::Draw(char mode)
 {
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -249,6 +255,7 @@ void Scene::Draw()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable( GL_BLEND );
  	glBindVertexArray(m_vao);
+	m_shaders.SetMatrixIn(GetShaderID(), glm::mat4(1.0f), "transform");
 		// glm::mat4 trans = glm::mat4(1.0f);
 		// trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
 		// trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -263,9 +270,16 @@ void Scene::Draw()
 		// m_camera.SetLookMatrix(m_camera.GetCameraView(), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		// m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
 	m_shaders.SetVectorIn(GetShaderID(), glm::vec4(1.0f, 0.5f, 0.2f, 0.7f), "color");
-	glDrawArrays(GL_POINTS, 0, CL_COUNT_PARTICLES);
+	if (mode == 0)
+		glDrawArrays(GL_POINTS, 0, CL_COUNT_PARTICLES);
+
+
 	glBindVertexArray(m_vao2);
-	m_shaders.SetVectorIn(GetShaderID(), glm::vec4(1.0f, 1.0f, 1.0f, 0.3f), "color");
+	glm::vec4 color(1.0f, 1.0f, 1.0f, 0.0f);
+	if (m_is_grav_center_vis)
+		color.w = 0.3;
+	m_shaders.SetMatrixIn(GetShaderID(), m_object.GetObjMatrix(), "transform");
+	m_shaders.SetVectorIn(GetShaderID(), color, "color");
 	glDrawElements(GL_TRIANGLES, size_indexes, GL_UNSIGNED_INT, 0);
 	glDisable(GL_BLEND);
 	PrintFPS();
@@ -334,28 +348,51 @@ void Scene::BindKeys(int key)
 
 void Scene::MouseButtonCallback(GLFWwindow *window, int button, int action, int mode)
 {
-	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
     {
-		glfwSetCursorPosCallback(window,
-					[](GLFWwindow* window, double x, double y)
-					{
-						Scene *self = static_cast<Scene*>(glfwGetWindowUserPointer(window));
-						self->MouseMove(window, x, y);
-					});
 	}
 }
 
 void Scene::MouseMove(GLFWwindow* window, double x, double y)
 {
+	// if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+	// {
+	// 	return;
+	// }
 	float z;
+	static float tmp;
 	int rect[4];
 	glGetIntegerv(GL_VIEWPORT, rect);
 	y = rect[3] - y - 1;
+	Draw(1);
 	glReadPixels(x, y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
 	glm::vec4 view = {rect[0],rect[1],rect[2],rect[3]};
 	// printf("x = %g, y = %g\n", x,y);
 	// printf("x = %d, y = %d, z = %d, w = %d\n", rect[0],rect[1],rect[2],rect[3]);
 	glm::vec3 out = glm::unProject(glm::vec3(x,y,z), glm::mat4(1.0f) * m_camera.GetLookMatrix(), m_camera.GetProjMatrix(), view);
-	// Draw();
+	// m_is_grav_center_vis = (fabs(out.z) < 0.1f && (fabs(out.x) < 10.f || fabs(out.y) < 10.f)) ? true : false;
 	// printf("x = %g, y = %g, z = %g\n", out.x,out.y,out.z);
+	auto newcoord = [&]()
+	{
+		m_is_grav_center_vis = true;
+		glm::vec3 out = glm::unProject(glm::vec3(x,y,tmp), glm::mat4(1.0f) * m_camera.GetLookMatrix(), m_camera.GetProjMatrix(), view);
+		if(fabs(out.x) < 6.0f && fabs(out.y) < 6.0f && fabs(out.z) < 6.0f)
+		{
+			m_object.m_position = glm::mat4(1.0f);
+			m_object.Move({out.x, out.y, out.z});
+			settings.gravity_point.x = m_object.m_position[3][0];
+			settings.gravity_point.y = m_object.m_position[3][1];
+			settings.gravity_point.z = m_object.m_position[3][2];
+		}
+		// printf("nx = %g, ny = %g, nz = %g\n", out.x,out.y,out.z);
+		// printf("nx = %g, ny = %g, nz = %g\n", m_object.m_position[3][0],m_object.m_position[3][1],m_object.m_position[3][2]);
+	};
+	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+	{
+		newcoord();
+	}
+	else
+	{
+		tmp = z;
+	}
 }

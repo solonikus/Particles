@@ -25,9 +25,9 @@ public:
     void Rotate(glm::vec3 rot_vec, float angle);
 
     glm::mat4 GetObjMatrix();
+    glm::mat4   m_position;
 
 private:
-    glm::mat4   m_position;
 
 };
 

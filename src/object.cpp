@@ -23,20 +23,16 @@ Object::~Object()
 
 void Object::Move(glm::vec3 vec_move)
 {
-	vec_move = glm::vec3(0.0, 0.0f, 0.0f);
 	m_position = glm::translate(m_position, vec_move);
 }
 
 void Object::Scale(glm::vec3 scale_vec)
 {
-	scale_vec = glm::vec3(0.1f, 0.1f, 0.1f);
 	m_position = glm::scale(m_position, scale_vec);
 }
 
 void Object::Rotate(glm::vec3 rot_vec, float angle)
 {
-    rot_vec = glm::vec3(0.1f, 0.1f, 0.1f);
-    angle = 5.0f;
     m_position = glm::rotate(m_position, angle, rot_vec);
 }
 
