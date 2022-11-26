@@ -167,6 +167,8 @@ void Scene::InitScene()
 	glBufferData(GL_ARRAY_BUFFER, CL_COUNT_PARTICLES * sizeof(vec_part), NULL, GL_STREAM_DRAW);
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(vec_part), 0);
 	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(vec_part), (void*)(4 * sizeof(float)));
+	glEnableVertexAttribArray(1);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 	m_particles.InitParticles(m_vbo);
@@ -183,7 +185,7 @@ void Scene::InitScene()
 	glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(float), vertex.data(), GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, index.size() * sizeof(int), index.data(), GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -210,20 +212,25 @@ void Scene::Loop()
 }
 
 void Scene::Draw(char mode)
-{
-	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	m_particles.Main(glfwGetTime(), settings);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable( GL_BLEND );
- 	glBindVertexArray(m_vao);
-	m_shaders.SetMatrixIn(GetShaderID(), glm::mat4(1.0f), "transform");
-
-	glm::vec4 col(color, 1.0f);
-	m_shaders.SetVectorIn(GetShaderID(), col, "color");
+{	
+	static double time;
+	glm::vec4 col(m_color, 1.0f);
 	if (mode == 0)
-		glDrawArrays(GL_POINTS, 0, CL_COUNT_PARTICLES);
+	{
+		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		time = fabs(time - glfwGetTime());
+		m_particles.Main(time, settings, m_cursor);
+		time = glfwGetTime();
+		// printf("time = %g\n", glfwGetTime());
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable( GL_BLEND );
+		glBindVertexArray(m_vao);
+		m_shaders.SetMatrixIn(GetShaderID(), glm::mat4(1.0f), "transform");
+		m_shaders.SetVectorIn(GetShaderID(), col, "color");
+			glDrawArrays(GL_POINTS, 0, CL_COUNT_PARTICLES);
+	}
 
 	glBindVertexArray(m_vao2);
 	if (m_is_grav_center_vis)
@@ -231,9 +238,12 @@ void Scene::Draw(char mode)
 	m_shaders.SetMatrixIn(GetShaderID(), m_object.GetObjMatrix(), "transform");
 	m_shaders.SetVectorIn(GetShaderID(), col, "color");
 	glDrawElements(GL_TRIANGLES, size_indexes, GL_UNSIGNED_INT, 0);
-	glDisable(GL_BLEND);
+	if (mode == 0)
+	{
+		glDisable(GL_BLEND);
 
-	PrintFPS();
+		PrintFPS();
+	}
 }
 
 void Scene::PrintFPS()
@@ -318,7 +328,7 @@ void Scene::MouseMove(GLFWwindow* window, double x, double y)
 	Draw(1);
 	glReadPixels(x, y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
 	glm::vec4 view = {rect[0],rect[1],rect[2],rect[3]};
-	glm::vec3 out = glm::unProject(glm::vec3(x,y,z), glm::mat4(1.0f) * m_camera.GetLookMatrix(), m_camera.GetProjMatrix(), view);
+	glm::vec3 out;
 	auto newcoord = [&]()
 	{
 		m_is_grav_center_vis = true;
@@ -340,6 +350,6 @@ void Scene::MouseMove(GLFWwindow* window, double x, double y)
 	{
 		tmp = z;
 	}
-	out = glm::unProject(glm::vec3(x,y,0.981), glm::mat4(1.0f) * m_camera.GetLookMatrix(), m_camera.GetProjMatrix(), view);
-	color = out;
+	m_cursor = glm::unProject(glm::vec3(x,y,0.981), glm::mat4(1.0f) * m_camera.GetLookMatrix(), m_camera.GetProjMatrix(), view);
+	// m_particles.CalcDist(out);
 }

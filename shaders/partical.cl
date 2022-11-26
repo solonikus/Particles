@@ -10,7 +10,7 @@ typedef struct
 	float s_z;
 } vec3;
 
-void gravity(__global vec3 *pos, int i, float3 grav_point);
+void gravity(__global vec3 *pos, int i, float3 grav_point, double time);
 void new_vectors_casatel(__global vec3 *pos, int i);
 
 float rand(int x)
@@ -65,10 +65,10 @@ __kernel void build_sphere(__global vec3 *pos, int main_count, float3 center)
 	pos[i].x = (radius * cos(angle)) + center.x;
 	pos[i].y = (radius * sin(angle)) + center.y;
 	pos[i].z = z + center.z;
-	pos[i].t = 100;
-	pos[i].s_x = 0.0f;
-	pos[i].s_y = 0.0f;
-	pos[i].s_z = 0.0f;
+	pos[i].t = 1;
+	pos[i].s_x = rand(234 * i) / 5000;
+	pos[i].s_y = rand(525 * i) / 5000;
+	pos[i].s_z = rand(132 * i) / 5000;
 }
 
 // Треугольник. Прямоугольный. АВС. В - прямой угол.
@@ -146,35 +146,35 @@ void moving_center(__global vec3 *pos, int i, float3 center, bool move)
 	}
 }
 
-void gravity(__global vec3 *pos, int i, float3 grav_point)
+void gravity(__global vec3 *pos, int i, float3 grav_point, double time)
 {
-	float a1 = 0.0000001;
+	double delta_time = 0.0003 * time;
 	float3 point;
 	point.x = pos[i].x;
 	point.y = pos[i].y;
 	point.z = pos[i].z;
-	pos[i].d = fabs(distance(point, grav_point));
 	float3 vec_dist = normalize(grav_point - point);
-	float3 new_vec = vec_dist * a1;
+	float3 new_vec = vec_dist * delta_time;
 
 	pos[i].s_x += new_vec.x;
 	pos[i].s_y += new_vec.y;
 	pos[i].s_z += new_vec.z;
 }
 
-__kernel void move_with_atractor(__global vec3 *pos, double time, float3 grav_point, int main_count, int add_count)
+__kernel void move_with_atractor(__global vec3 *pos, double time, float3 grav_point, int main_count, int add_count, float3 cursor)
 {
 	int i = get_global_id(0);
 
 	if (i >= main_count)
-		pos[i].t -= 0.1;
+		pos[i].t -= time;
 	if (pos[i].t < 0)
 	{
 		pos[i].x = pos[i].y = pos[i].z = 0.0f;
 		pos[i].t = 0.0f;
 		return;
 	}
-	gravity(pos, i, grav_point);
+	gravity(pos, i, grav_point, time);
+	pos[i].d = sqrt((cursor.x - pos[i].x) * (cursor.x - pos[i].x) + (cursor.y - pos[i].y) * (cursor.y - pos[i].y) + (cursor.z - pos[i].z) * (cursor.z - pos[i].z));
 	pos[i].x += pos[i].s_x;
 	pos[i].y += pos[i].s_y;
 	pos[i].z += pos[i].s_z;
@@ -182,4 +182,11 @@ __kernel void move_with_atractor(__global vec3 *pos, double time, float3 grav_po
 	point.x = pos[i].x;
 	point.y = pos[i].y;
 	point.z = pos[i].z;
+}
+
+__kernel void calc_dist(__global vec3 *pos, float3 cursor)
+{
+	int i = get_global_id(0);
+
+	pos[i].d = sqrt((cursor.x - pos[i].x) * (cursor.x - pos[i].x) + (cursor.y - pos[i].y) * (cursor.y - pos[i].y) + (cursor.z - pos[i].z) * (cursor.z - pos[i].z));
 }

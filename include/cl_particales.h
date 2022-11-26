@@ -9,7 +9,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#define CL_COUNT_MAIN_PARTICLES 100000
+#define CL_COUNT_MAIN_PARTICLES 1000000
 #define CL_COUNT_ADD_PARTICLES 10000
 #define CL_COUNT_PARTICLES (CL_COUNT_MAIN_PARTICLES + CL_COUNT_ADD_PARTICLES)
 
@@ -38,16 +38,13 @@ public:
     CLEngine();
 
     cl::CommandQueue queue;
-    cl::Kernel k_moving_wa, k_build_sphere, k_move_y;
+    cl::Kernel k_moving_wa, k_build_sphere, k_calc_dist;
     cl::BufferGL mem_buf;
 
     void InitParticles(cl_GLuint vbo);
-    void Main(double time, scene_settings settings);
+    void Main(double time, scene_settings settings, glm::vec3 center);
     void CreateSphere(glm::vec3 point);
-    void Rotate(bool x, float angle);
-
-    // glm::vec4 GetVec3Array(int i){return vec3[i];};
-    void GetMatPosicion(int i, glm::mat4 &model);
+    void CalcDist(glm::vec3 point);
 };
 
 

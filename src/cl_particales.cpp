@@ -45,20 +45,25 @@ void CLEngine::InitParticles(cl_GLuint vbo)
 	cl::Kernel k_init(program, "build_cube");
 	k_moving_wa = cl::Kernel(program, "move_with_atractor");
 	k_build_sphere = cl::Kernel(program, "build_sphere");
-	// k_move_y = cl::Kernel(program, "move_y");
+	k_calc_dist = cl::Kernel(program, "calc_dist");
 	k_init.setArg(0, mem_buf);
 	k_init.setArg(1, CL_COUNT_MAIN_PARTICLES);
 	queue.enqueueNDRangeKernel(k_init, cl::NullRange, cl::NDRange(CL_COUNT_PARTICLES), cl::NDRange(128));
 	queue.finish();
 }
 
-void CLEngine::Main(double time, scene_settings settings)
+void CLEngine::Main(double time, scene_settings settings, glm::vec3 center)
 {
+	cl_float3 cl_cent;
+	cl_cent.x = center.x;
+	cl_cent.y = center.y;
+	cl_cent.z = center.z;
 	k_moving_wa.setArg(0, mem_buf);
 	k_moving_wa.setArg(1, time);
 	k_moving_wa.setArg(2, settings);
 	k_moving_wa.setArg(3, CL_COUNT_MAIN_PARTICLES);
 	k_moving_wa.setArg(4, CL_COUNT_ADD_PARTICLES);
+	k_moving_wa.setArg(5, cl_cent);
 	queue.enqueueNDRangeKernel(k_moving_wa, cl::NullRange, cl::NDRange(CL_COUNT_PARTICLES), cl::NDRange(128));
 	queue.finish();
 }
@@ -73,5 +78,18 @@ void CLEngine::CreateSphere(glm::vec3 center)
 	k_build_sphere.setArg(1, CL_COUNT_MAIN_PARTICLES);
 	k_build_sphere.setArg(2, cl_cent);
 	queue.enqueueNDRangeKernel(k_build_sphere, cl::NDRange(CL_COUNT_MAIN_PARTICLES), cl::NDRange(CL_COUNT_ADD_PARTICLES), cl::NDRange(128));
+	queue.finish();
+}
+
+void CLEngine::CalcDist(glm::vec3 cursos)
+{
+	cl_float3 cl_cent;
+	cl_cent.x = cursos.x;
+	cl_cent.y = cursos.y;
+	cl_cent.z = cursos.z;
+	// printf("x = %g, y = %g, z = %g\n", cursos.x, cursos.y, cursos.z);
+	k_calc_dist.setArg(0, mem_buf);
+	k_calc_dist.setArg(1, cl_cent);
+	queue.enqueueNDRangeKernel(k_calc_dist, cl::NullRange, cl::NDRange(CL_COUNT_PARTICLES), cl::NDRange(128));
 	queue.finish();
 }
