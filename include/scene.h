@@ -44,6 +44,7 @@ public:
 
 	std::vector<float>	m_array_vertex;
 	std::vector<int>	m_array_indexes;
+	glm::vec3 			color;
 
 	scene_settings		settings;
 	bool				m_is_fps_enable = 1, m_is_grav_center_vis = 1;
