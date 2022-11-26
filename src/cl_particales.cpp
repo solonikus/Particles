@@ -25,7 +25,6 @@ void CLEngine::InitParticles(cl_GLuint vbo)
 	for (auto device : devices)
 	{
 		std::cout << "Device: " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
-		// std::cout << "Device: " << device.getInfo<CL_DEVICE_EXTENSIONS>() << std::endl;
 	}
 	cl::Platform pltf = platforms[0];
 	cl_context_properties props[] = {
@@ -36,7 +35,6 @@ void CLEngine::InitParticles(cl_GLuint vbo)
 	cl::Context context(devices[0], props);
 	queue = cl::CommandQueue(context, devices[0]);
 	mem_buf = cl::BufferGL(context, CL_MEM_READ_WRITE, vbo, &ret);
-	// mem_buf = cl::Buffer(context, CL_MEM_READ_WRITE, CL_COUNT_PARTICLES * sizeof(cl_float3), NULL, &ret);
 	cl::Program prog;
 	cl::Kernel kern;
 	std::ifstream sourceFile("E:\\CodeBase\\School21\\Particles\\shaders\\partical.cl");
@@ -46,20 +44,12 @@ void CLEngine::InitParticles(cl_GLuint vbo)
 	program.build(devices);
 	cl::Kernel k_init(program, "build_cube");
 	k_moving_wa = cl::Kernel(program, "move_with_atractor");
-	k_move_x = cl::Kernel(program, "move_x");
-	k_move_y = cl::Kernel(program, "move_y");
+	k_build_sphere = cl::Kernel(program, "build_sphere");
+	// k_move_y = cl::Kernel(program, "move_y");
 	k_init.setArg(0, mem_buf);
+	k_init.setArg(1, CL_COUNT_MAIN_PARTICLES);
 	queue.enqueueNDRangeKernel(k_init, cl::NullRange, cl::NDRange(CL_COUNT_PARTICLES), cl::NDRange(128));
 	queue.finish();
-
-	// vec3 = new vec3_print[CL_COUNT_PARTICLES];
-	// queue.enqueueReadBuffer(mem_buf, CL_TRUE, 0, CL_COUNT_PARTICLES * sizeof(cl_float3), vec3);
-	// for (int i = 0; i < 10; i++)
-	// {
-	// 	std::cout << "# "<< i << " x: " << vec3[i].x << " z: " << vec3[i].z << "\n";
-	// }
-	// int i;
-	// i = 0;
 }
 
 void CLEngine::Main(double time, scene_settings settings)
@@ -67,33 +57,21 @@ void CLEngine::Main(double time, scene_settings settings)
 	k_moving_wa.setArg(0, mem_buf);
 	k_moving_wa.setArg(1, time);
 	k_moving_wa.setArg(2, settings);
+	k_moving_wa.setArg(3, CL_COUNT_MAIN_PARTICLES);
+	k_moving_wa.setArg(4, CL_COUNT_ADD_PARTICLES);
 	queue.enqueueNDRangeKernel(k_moving_wa, cl::NullRange, cl::NDRange(CL_COUNT_PARTICLES), cl::NDRange(128));
 	queue.finish();
-
-	// vec3 = new vec3_print[CL_COUNT_PARTICLES];
-	// queue.enqueueReadBuffer(mem_buf, CL_TRUE, 0, CL_COUNT_PARTICLES * sizeof(cl_float3), vec3);
-	// for (int i = 0; i < 10; i++)
-	// {
-	// 	std::cout << "# "<< i << " x: " << vec3[i].x << " z: " << vec3[i].z << "\n";
-	// }
-	// int i;
-	// i = 0;
 }
 
-void CLEngine::Rotate(bool x, float angle)
+void CLEngine::CreateSphere(glm::vec3 center)
 {
-	if (x)
-	{
-		k_move_x.setArg(0, mem_buf);
-		k_move_x.setArg(1, angle);
-		queue.enqueueNDRangeKernel(k_move_x, cl::NullRange, cl::NDRange(CL_COUNT_PARTICLES), cl::NDRange(128));
-		queue.finish();
-	}
-	else
-	{
-		k_move_y.setArg(0, mem_buf);
-		k_move_y.setArg(1, angle);
-		queue.enqueueNDRangeKernel(k_move_y, cl::NullRange, cl::NDRange(CL_COUNT_PARTICLES), cl::NDRange(128));
-		queue.finish();
-	}
+	cl_float3 cl_cent;
+	cl_cent.x = center.x;
+	cl_cent.y = center.y;
+	cl_cent.z = center.z;
+	k_build_sphere.setArg(0, mem_buf);
+	k_build_sphere.setArg(1, CL_COUNT_MAIN_PARTICLES);
+	k_build_sphere.setArg(2, cl_cent);
+	queue.enqueueNDRangeKernel(k_build_sphere, cl::NDRange(CL_COUNT_MAIN_PARTICLES), cl::NDRange(CL_COUNT_ADD_PARTICLES), cl::NDRange(128));
+	queue.finish();
 }

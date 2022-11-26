@@ -150,9 +150,6 @@ Scene::Scene()
     glGenVertexArrays(1, &m_vao);
 	glGenVertexArrays(1, &m_vao2);
 	glfwSetWindowUserPointer(window, this);
-	// settings.gravity_point.x = 0;
-	// settings.gravity_point.y = 0;
-	// settings.gravity_point.z = 0;
 }
 
 Scene::~Scene()
@@ -165,14 +162,10 @@ void Scene::InitScene()
 {
 	glBindVertexArray(m_vao);
 	glGenBuffers(1, &m_vbo);
-	// DrawCube(m_array_vertex, m_array_indexes);
-	// AddObject(e_Cube);
 
 	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-	glBufferData(GL_ARRAY_BUFFER, CL_COUNT_PARTICLES * 6 * sizeof(float), NULL, GL_STREAM_DRAW);
-	// glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
-	// glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_array_indexes.size() * sizeof(int), m_array_indexes.data(), GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0);
+	glBufferData(GL_ARRAY_BUFFER, CL_COUNT_PARTICLES * sizeof(vec_part), NULL, GL_STREAM_DRAW);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(vec_part), 0);
 	glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -196,43 +189,18 @@ void Scene::InitScene()
 	glBindVertexArray(0);
 }
 
-void Scene::AddObject(Objects obj)
-{
-	// switch (obj)
-	// {
-	// case e_Ball:
-	// 	m_objects.emplace_back(e_Ball);
-	// 	break;
-	// case e_Cube:
-	// 	m_objects.emplace_back(e_Cube);
-	// 	break;
-	// case e_Plane:
-	// 	m_objects.emplace_back(e_Plane);
-	// 	break;	
-	// default:
-	// 	break;
-	// }
-}
-
 void Scene::Loop()
-{
-	// m_objects[0].Rotate(glm::vec3(1.0f), 5.0f);
-	// m_objects[0].Move(glm::vec3(1.0f));
-	// m_objects[0].Scale(glm::vec3(1.0f));
-	
+{	
 	glUseProgram(GetShaderID());
-	// m_camera.SetLookMatrix(glm::vec3(0.0f, 0.0f,  0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetProjMatrix(), "project");
 	m_shaders.SetMatrixIn(GetShaderID(), glm::mat4(1.0f), "transform");
 	glPointSize(1);
-	// m_camera.SetLookMatrix(glm::vec3(5.0, 0.0, 0.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
 	settings.gravity_point.x = 0;
 	settings.gravity_point.y = 0;
 	settings.gravity_point.z = 0;
 	m_camera.m_angles.x = 0;
 	m_camera.m_angles.y = 0;
-	// m_shaders.SetVectorIn(GetShaderID(), glm::vec4(1.0f, 0.5f, 0.2f, 1.0f), "color");
 	while (!glfwWindowShouldClose(window))
 	{
 		Draw();
@@ -246,51 +214,26 @@ void Scene::Draw(char mode)
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// for (auto obj : m_objects)
-		// {
-		// 	m_shaders.SetMatrixIn(GetShaderID(), obj.GetObjMatrix(), "transform");
-		// }
-
 	m_particles.Main(glfwGetTime(), settings);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable( GL_BLEND );
  	glBindVertexArray(m_vao);
 	m_shaders.SetMatrixIn(GetShaderID(), glm::mat4(1.0f), "transform");
-		// glm::mat4 trans = glm::mat4(1.0f);
-		// trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
-		// trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		// m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
-		// m_shaders.SetMatrixIn(GetShaderID(), trans, "transform");
-		// const float radius = 5.0f;
-		// const float speed = 0.5f;
-		// float camX = sin(glfwGetTime() * speed) * radius;
-		// float camZ = cos(glfwGetTime() * speed) * radius;	
-		// m_camera.SetLookMatrix(glm::vec3(camX, camZ, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		// m_camera.SetLookMatrix(m_camera.GetCameraView(), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		// m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
-	m_shaders.SetVectorIn(GetShaderID(), glm::vec4(1.0f, 0.5f, 0.2f, 0.7f), "color");
+	glm::vec4 col(color, 1.0f);
+	m_shaders.SetVectorIn(GetShaderID(), col, "color");
 	if (mode == 0)
 		glDrawArrays(GL_POINTS, 0, CL_COUNT_PARTICLES);
 
-
 	glBindVertexArray(m_vao2);
-	glm::vec4 color(1.0f, 1.0f, 1.0f, 0.0f);
 	if (m_is_grav_center_vis)
-		color.w = 0.3;
+		col.w = 0.3;
 	m_shaders.SetMatrixIn(GetShaderID(), m_object.GetObjMatrix(), "transform");
-	m_shaders.SetVectorIn(GetShaderID(), color, "color");
+	m_shaders.SetVectorIn(GetShaderID(), col, "color");
 	glDrawElements(GL_TRIANGLES, size_indexes, GL_UNSIGNED_INT, 0);
 	glDisable(GL_BLEND);
-	PrintFPS();
 
-		// for (int i = 0; i < CL_COUNT_PARTICLES; i++)
-		// { 
-		// 	// glm::mat4 model = m_particles.GetMatPosicion(i);
-		// 	// model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-		// 	m_shaders.SetMatrixIn(GetShaderID(), m_particles.GetMatPosicion(i), "transform");
-		// 	glDrawArrays(GL_POINTS, 0, 1);
-		// }
+	PrintFPS();
 }
 
 void Scene::PrintFPS()
@@ -324,8 +267,6 @@ void Scene::BindKeys(int key)
 		float camY = sin(glm::radians(m_camera.m_angles.x)) * radius;
 		float camZ = cos(glm::radians(m_camera.m_angles.x)) * sin(glm::radians(m_camera.m_angles.y)) * radius;
 		m_camera.SetLookMatrix({camX, camY, camZ}, {0.0f, 0.0f, 0.0f}, {0.0, 1.0, 0.0});
-		// glm::vec3 norm = glm::normalize(glm::vec3(camX, camY, camZ));
-		// printf("x = %g, y = %g, z = %g\n", camX, camY, camZ);
 	};
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
 	{
@@ -348,17 +289,27 @@ void Scene::BindKeys(int key)
 
 void Scene::MouseButtonCallback(GLFWwindow *window, int button, int action, int mode)
 {
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-    {
+	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+	{
+		double x, y;
+	   	glfwGetCursorPos(window, &x, &y);
+		float z;
+		int rect[4];
+		glGetIntegerv(GL_VIEWPORT, rect);
+		y = rect[3] - y - 1;
+		glm::vec4 view = {rect[0],rect[1],rect[2],rect[3]};
+		glm::vec3 camera{m_camera.GetLookMatrix()[3][0], m_camera.GetLookMatrix()[3][1], m_camera.GetLookMatrix()[3][2]};
+		z = glm::distance(camera, glm::vec3(0.0f));
+		glReadPixels(x, y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
+		printf("x = %g, y = %g, z = %g\n", x, y, z);
+		glm::vec3 out = glm::unProject(glm::vec3(x,y,0.977), glm::mat4(1.0f) * m_camera.GetLookMatrix(), m_camera.GetProjMatrix(), view);
+		m_particles.CreateSphere(out);
+		printf("nx = %g, ny = %g, nz = %g\n", out.x,out.y,out.z);
 	}
 }
 
 void Scene::MouseMove(GLFWwindow* window, double x, double y)
 {
-	// if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-	// {
-	// 	return;
-	// }
 	float z;
 	static float tmp;
 	int rect[4];
@@ -367,11 +318,7 @@ void Scene::MouseMove(GLFWwindow* window, double x, double y)
 	Draw(1);
 	glReadPixels(x, y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
 	glm::vec4 view = {rect[0],rect[1],rect[2],rect[3]};
-	// printf("x = %g, y = %g\n", x,y);
-	// printf("x = %d, y = %d, z = %d, w = %d\n", rect[0],rect[1],rect[2],rect[3]);
 	glm::vec3 out = glm::unProject(glm::vec3(x,y,z), glm::mat4(1.0f) * m_camera.GetLookMatrix(), m_camera.GetProjMatrix(), view);
-	// m_is_grav_center_vis = (fabs(out.z) < 0.1f && (fabs(out.x) < 10.f || fabs(out.y) < 10.f)) ? true : false;
-	// printf("x = %g, y = %g, z = %g\n", out.x,out.y,out.z);
 	auto newcoord = [&]()
 	{
 		m_is_grav_center_vis = true;
@@ -384,8 +331,6 @@ void Scene::MouseMove(GLFWwindow* window, double x, double y)
 			settings.gravity_point.y = m_object.m_position[3][1];
 			settings.gravity_point.z = m_object.m_position[3][2];
 		}
-		// printf("nx = %g, ny = %g, nz = %g\n", out.x,out.y,out.z);
-		// printf("nx = %g, ny = %g, nz = %g\n", m_object.m_position[3][0],m_object.m_position[3][1],m_object.m_position[3][2]);
 	};
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 	{
@@ -395,4 +340,6 @@ void Scene::MouseMove(GLFWwindow* window, double x, double y)
 	{
 		tmp = z;
 	}
+	out = glm::unProject(glm::vec3(x,y,0.981), glm::mat4(1.0f) * m_camera.GetLookMatrix(), m_camera.GetProjMatrix(), view);
+	color = out;
 }
