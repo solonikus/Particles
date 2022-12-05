@@ -12,12 +12,13 @@ void main()
 {
    gl_Position = project * view * transform * vec4(aPos.x, aPos.y, aPos.z, 1.0f);
    vec4 col = color;
-   vec4 col1;
-   col1.x = 0.5 / dist;
-   col1.y = 0.7 / dist;
-   col1.z = dist;
-   col1.w = 1.0;
-   if (aPos.w < 0.1)
-      col.w = 0.0f;      
-   ourColor = col1;
+   col.x = dist / 2;
+   col.y = 0.5;
+   col.z = dist / 0.5;
+   col.w = 0.5;
+   if (color.x > 10.0f)
+      col.x = 0.7; col.y = 0.5; col.z = 0.9; col.w = 1.0;
+   if (color.x < 10.0f && aPos.w < 0.1)
+      col.w = 0.0f;
+   ourColor = col;
 };

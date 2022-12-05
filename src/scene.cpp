@@ -12,40 +12,6 @@ static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	glViewport(0, 0, width, height);
 }
 
-static void DrawCube(std::vector<float> &array_vertex, std::vector<int> &array_indexes)
-{
-    // std::vector<float> vertices {
-    //     0.5f,  0.5f, -0.5f,
-    //     0.5f, -0.5f, -0.5f,
-    //     -0.5f, -0.5f, -0.5f,
-    //     -0.5f,  0.5f, -0.5f,
-    //     -0.5f, -0.5f, 0.5f,
-    //     -0.5f, 0.5f, 0.5f,
-    //     0.5f, 0.5f, 0.5f,
-    //     0.5f, -0.5f, 0.5f,
-
-    // };
-	    std::vector<float> vertices {
-        0.0f,  0.0f, 0.0f
-    };
-    std::vector<int> indexes {
-        0, 1, 3,  // первый треугольник
-        1, 2, 3,  // второй треугольник
-        3, 2, 4,
-        4, 3, 5,
-        4, 5, 7,
-        5, 7, 6,
-        6, 7, 0,
-        7, 1, 0,
-        1, 2, 7,
-        2, 7, 4,
-        0, 3, 6,
-        3, 6, 5
-    };
-    array_vertex.insert(array_vertex.end(), vertices.begin(), vertices.end());
-    array_indexes.insert(array_indexes.end(), indexes.begin(), indexes.end());
-}
-
 static void DrawSphere(int x, int y, std::vector<float> &vertices, std::vector<int> &indices, float size)
 {
 	for (int i = 0; i <= x; ++i)
@@ -203,8 +169,12 @@ void Scene::Loop()
 	settings.gravity_point.z = 0;
 	m_camera.m_angles.x = 0;
 	m_camera.m_angles.y = 0;
+	m_camera.m_angles.z = 5.0f;
+	double lasttime = 0.0;
 	while (!glfwWindowShouldClose(window))
 	{
+		double time = glfwGetTime();
+		double delta = time - lasttime;
 		Draw();
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -214,16 +184,15 @@ void Scene::Loop()
 void Scene::Draw(char mode)
 {	
 	static double time;
+	static double curtime;
 	glm::vec4 col(m_color, 1.0f);
+	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	if (mode == 0)
 	{
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 		time = fabs(time - glfwGetTime());
 		m_particles.Main(time, settings, m_cursor);
 		time = glfwGetTime();
-		// printf("time = %g\n", glfwGetTime());
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glEnable( GL_BLEND );
 		glBindVertexArray(m_vao);
@@ -233,8 +202,12 @@ void Scene::Draw(char mode)
 	}
 
 	glBindVertexArray(m_vao2);
-	if (m_is_grav_center_vis)
-		col.w = 0.3;
+	col.x = 11.0f;
+	if (!m_is_grav_center_vis && !m_is_grav_center_vis_true)
+	{
+		col.w = 0.0;
+		col.x = 1.0f;
+	}
 	m_shaders.SetMatrixIn(GetShaderID(), m_object.GetObjMatrix(), "transform");
 	m_shaders.SetVectorIn(GetShaderID(), col, "color");
 	glDrawElements(GL_TRIANGLES, size_indexes, GL_UNSIGNED_INT, 0);
@@ -260,11 +233,12 @@ void Scene::PrintFPS()
 
 void Scene::BindKeys(int key)
 {
-	auto update = [&](float angleX, float angleY)
+	auto update = [&](float angleX, float angleY, float rad)
 	{
-		const float radius = 5.0f;
 		m_camera.m_angles.x += angleX;
 		m_camera.m_angles.y += angleY;
+		m_camera.m_angles.z += rad;
+		float radius = m_camera.m_angles.z;
 		if (m_camera.m_angles.x > 89.0)
 		{
 			m_camera.m_angles.x = 89.0;
@@ -277,24 +251,57 @@ void Scene::BindKeys(int key)
 		float camY = sin(glm::radians(m_camera.m_angles.x)) * radius;
 		float camZ = cos(glm::radians(m_camera.m_angles.x)) * sin(glm::radians(m_camera.m_angles.y)) * radius;
 		m_camera.SetLookMatrix({camX, camY, camZ}, {0.0f, 0.0f, 0.0f}, {0.0, 1.0, 0.0});
+		m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
 	};
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
 	{
-		update(1.0, 0.0);
+		update(1.0, 0.0, 0.0);
 	}
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
 	{
-		update(-1.0, 0.0);
+		update(-1.0, 0.0, 0.0);
 	}
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
 	{
-		update(0.0, 1.0);
+		update(0.0, 1.0, 0.0);
 	}
 	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
 	{
-		update(0.0, -1.0);
+		update(0.0, -1.0, 0.0);
 	}
-	m_shaders.SetMatrixIn(GetShaderID(), m_camera.GetLookMatrix(), "view");
+	if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS)
+	{
+		update(0.0, 0.0, 0.1);
+		m_dist += 0.0002;
+	}
+	if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS)
+	{
+		update(0.0, 0.0, -0.1);
+		m_dist -= 0.0002;
+	}
+	if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS)
+	{
+		m_particles.Build(true, settings.gravity_point);
+	}
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+	{
+		m_particles.Build(false, settings.gravity_point);
+	}
+	if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS)
+	{
+		m_is_grav_center_vis_true = m_is_grav_center_vis_true ? false : true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+	{
+		m_particles.VecQuas(settings.gravity_point);
+	}
+	if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
+	{
+			m_object.m_position = glm::mat4(1.0f);
+			settings.gravity_point.x = 0.0f;
+			settings.gravity_point.y = 0.0f;
+			settings.gravity_point.z = 0.0f;
+	}
 }
 
 void Scene::MouseButtonCallback(GLFWwindow *window, int button, int action, int mode)
@@ -311,10 +318,10 @@ void Scene::MouseButtonCallback(GLFWwindow *window, int button, int action, int 
 		glm::vec3 camera{m_camera.GetLookMatrix()[3][0], m_camera.GetLookMatrix()[3][1], m_camera.GetLookMatrix()[3][2]};
 		z = glm::distance(camera, glm::vec3(0.0f));
 		glReadPixels(x, y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
-		printf("x = %g, y = %g, z = %g\n", x, y, z);
+		// printf("x = %g, y = %g, z = %g\n", x, y, z);
 		glm::vec3 out = glm::unProject(glm::vec3(x,y,0.977), glm::mat4(1.0f) * m_camera.GetLookMatrix(), m_camera.GetProjMatrix(), view);
 		m_particles.CreateSphere(out);
-		printf("nx = %g, ny = %g, nz = %g\n", out.x,out.y,out.z);
+		// printf("nx = %g, ny = %g, nz = %g\n", out.x,out.y,out.z);
 	}
 }
 
@@ -328,7 +335,11 @@ void Scene::MouseMove(GLFWwindow* window, double x, double y)
 	Draw(1);
 	glReadPixels(x, y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
 	glm::vec4 view = {rect[0],rect[1],rect[2],rect[3]};
-	glm::vec3 out;
+	glm::vec3 out = glm::unProject(glm::vec3(x,y,z), glm::mat4(1.0f) * m_camera.GetLookMatrix(), m_camera.GetProjMatrix(), view);
+	if(!(fabs(out.x) < 6.0f && fabs(out.y) < 6.0f && fabs(out.z) < 6.0f))
+		m_is_grav_center_vis = false;
+	else
+		m_is_grav_center_vis = true;
 	auto newcoord = [&]()
 	{
 		m_is_grav_center_vis = true;
@@ -350,6 +361,5 @@ void Scene::MouseMove(GLFWwindow* window, double x, double y)
 	{
 		tmp = z;
 	}
-	m_cursor = glm::unProject(glm::vec3(x,y,0.981), glm::mat4(1.0f) * m_camera.GetLookMatrix(), m_camera.GetProjMatrix(), view);
-	// m_particles.CalcDist(out);
+	m_cursor = glm::unProject(glm::vec3(x,y,m_dist), glm::mat4(1.0f) * m_camera.GetLookMatrix(), m_camera.GetProjMatrix(), view);
 }

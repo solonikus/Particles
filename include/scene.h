@@ -48,7 +48,8 @@ public:
 	glm::vec3 			m_cursor;
 
 	scene_settings		settings;
-	bool				m_is_fps_enable = 1, m_is_grav_center_vis = 1;
+	bool				m_is_fps_enable = 1, m_is_grav_center_vis = 1, m_is_grav_center_vis_true = 0;
+	float				m_dist = 0.981;
 
 	void InitScene();
 	void AddObject(Objects obj);

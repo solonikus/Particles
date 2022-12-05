@@ -7,7 +7,6 @@ int main()
 	{
 		Scene main_scene;
 		main_scene.InitScene();
-		// CLEngine cl_particles;
 		main_scene.Loop();
 	}
 	catch(const std::exception& e)

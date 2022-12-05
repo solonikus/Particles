@@ -32,13 +32,13 @@ uint	random_number_generator(uint2 randoms)
 	return (result);
 }
 
-__kernel void build_cube(__global vec3 *pos, int main_count)
+__kernel void build_cube(__global vec3 *pos, int main_count, float3 center)
 {
 	int i = get_global_id(0);
-	pos[i].x = rand(213 * i);
-	pos[i].y = rand(545 * i);
-	pos[i].z = rand(127 * i);
-	if (i <= main_count)
+	pos[i].x = rand(213 * i) + center.x;
+	pos[i].y = rand(545 * i) + center.y;
+	pos[i].z = rand(127 * i) + center.z;
+	if (i < main_count)
 		pos[i].t = 11.0f;
 	else
 		pos[i].t = 0.0f;
@@ -55,61 +55,10 @@ float		linearRandom(float min, float max, uint2 randoms)
 	return (ran * (max - min) + min);
 }
 
-__kernel void build_sphere(__global vec3 *pos, int main_count, float3 center)
-{
-	int i = get_global_id(0);
-	float z = linearRandom(-0.1f, 1.0f, 12);
-	float angle = linearRandom(0.0f, 6.29f, 33);
-	float radius = sqrt((0.1f - z) * z);
-
-	pos[i].x = (radius * cos(angle)) + center.x;
-	pos[i].y = (radius * sin(angle)) + center.y;
-	pos[i].z = z + center.z;
-	pos[i].t = 1;
-	pos[i].s_x = rand(234 * i) / 5000;
-	pos[i].s_y = rand(525 * i) / 5000;
-	pos[i].s_z = rand(132 * i) / 5000;
-}
-
-// Треугольник. Прямоугольный. АВС. В - прямой угол.
-// Вычисление координаты 3-й вершины С <xc_, yc_> по координатам вершин А <xa_, ya_>, В <xb_, yb_>
-// и длине катета BC <bc_>
-__kernel void move_without_atractor1(__global vec3 *pos, double time)
+__kernel void vectors_casatel(__global vec3 *pos, float3 center)
 {
 	int i = get_global_id(0);
 
-	float a1 = 0.000001; //ускорение(касательная)
-	float a = pos[i].z; float b = pos[i].x;
-	int sign_a = a >= 0 ? 1 : -1; int sign_b = b >= 0 ? 1 : -1;
-	float radius = sqrt((a * a) + (b * b));
-	float c = radius;
-	float angle_a = atan(a/b) * 180 / M_PI;
-	float angle_a1 = atan(a1/c) * 180 / M_PI;
-	float c1 = sqrt((c * c) + (a1 * a1));
-	float angle_a2 = angle_a - angle_a1;
-	float angle_b2 = 90 - angle_a2;
-	float new_z = c1 * sin((angle_a2) * M_PI / 180) * sign_b;
-	float new_x = c1 * sin((angle_b2) * M_PI / 180) * sign_b;
-	pos[i].x = new_x;
-	pos[i].z = new_z;
-	
-	float new_radius = sqrt((pos[i].x * pos[i].x) + (pos[i].z * pos[i].z));
-	float a2 = radius - new_radius;
-	float procent = a2 / new_radius;
-	float3 grav;
-	grav.x = (fabs(pos[i].x) - fabs(pos[i].x * procent)) * (pos[i].x > 0 ? 1 : -1);
-	grav.z = (fabs(pos[i].z) - fabs(pos[i].z * procent)) * (pos[i].z > 0 ? 1 : -1);
-	pos[i].x = grav.x;
-	pos[i].z = grav.z;
-
-	if (i == 10)
-	{
-		printf("x = %g , z = %g , len = %g, a1=%f", pos[i].x, pos[i].z, sqrt((pos[i].x * pos[i].x) + (pos[i].z * pos[i].z)), a1);
-	}
-}
-
-void new_vectors_casatel(__global vec3 *pos, int i)
-{
 	float a1 = 0.0001; //ускорение(касательная)
 	float a = pos[i].z; float b = pos[i].x;
 	int sign_a = a >= 0 ? 1 : -1; int sign_b = b >= 0 ? 1 : -1;
@@ -122,43 +71,58 @@ void new_vectors_casatel(__global vec3 *pos, int i)
 	float angle_b2 = 90 - angle_a2;
 	float new_z = c1 * sin((angle_a2) * M_PI / 180) * sign_b;
 	float new_x = c1 * sin((angle_b2) * M_PI / 180) * sign_b;
-	pos[i].s_x = new_x - pos[i].x;
-	pos[i].s_z = new_z - pos[i].z;
-
-	float new_radius = sqrt((new_x * new_x) + (new_z * new_z));
-	float a2 = radius - new_radius;
-	pos[i].s_y = a2;
+	pos[i].s_x += new_x - pos[i].x;
+	pos[i].s_z += new_z - pos[i].z;
 }
 
-void moving_center(__global vec3 *pos, int i, float3 center, bool move)
+__kernel void build_sphere(__global vec3 *pos, int main_count, float3 center)
 {
-	if (move)
+	int i = get_global_id(0);
+	if (i > main_count)
 	{
-		pos[i].x += center.x;
-		pos[i].z += center.z;
-		pos[i].y += center.y;
+		float z = linearRandom(-0.1f, 1.0f, 12);
+		float angle = linearRandom(0.0f, 6.29f, 33);
+		float radius = sqrt((0.1f - z) * z);
+
+		pos[i].x = (radius * cos(angle)) + center.x;
+		pos[i].y = (radius * sin(angle)) + center.y;
+		pos[i].z = z + center.z;
+		pos[i].t = 1.0f;
+		pos[i].s_x = rand(234 * i) / 5000;
+		pos[i].s_y = rand(525 * i) / 5000;
+		pos[i].s_z = rand(132 * i) / 5000;
 	}
 	else
 	{
-		pos[i].x -= center.x;
-		pos[i].z -= center.z;
-		pos[i].y -= center.y;
+		float minmax = 1.0f;
+		float z = linearRandom(-1.0f, 1.0f, 12);
+		float angle = linearRandom(0.0f, 6.29f, 33);
+		float radius = sqrt((1.0f - z) * z);
+		minmax *= 2;
+
+		pos[i].x = (radius * cos(angle)) * minmax + center.x;
+		pos[i].y = (radius * sin(angle)) * minmax + center.y;
+		pos[i].z = z * minmax + center.z - (minmax / 2);
+		pos[i].t = 11.0f;
+		pos[i].s_x = rand(234 * i) / 5000;
+		pos[i].s_y = rand(525 * i) / 5000;
+		pos[i].s_z = rand(132 * i) / 5000;
 	}
 }
 
 void gravity(__global vec3 *pos, int i, float3 grav_point, double time)
 {
-	double delta_time = 0.0003 * time;
+	double grav = 0.0005;
 	float3 point;
 	point.x = pos[i].x;
 	point.y = pos[i].y;
 	point.z = pos[i].z;
 	float3 vec_dist = normalize(grav_point - point);
-	float3 new_vec = vec_dist * delta_time;
+	float3 new_vec = vec_dist * (float)(grav);
 
-	pos[i].s_x += new_vec.x;
-	pos[i].s_y += new_vec.y;
-	pos[i].s_z += new_vec.z;
+	pos[i].s_x += new_vec.x * time;
+	pos[i].s_y += new_vec.y * time;
+	pos[i].s_z += new_vec.z * time;
 }
 
 __kernel void move_with_atractor(__global vec3 *pos, double time, float3 grav_point, int main_count, int add_count, float3 cursor)
@@ -178,15 +142,4 @@ __kernel void move_with_atractor(__global vec3 *pos, double time, float3 grav_po
 	pos[i].x += pos[i].s_x;
 	pos[i].y += pos[i].s_y;
 	pos[i].z += pos[i].s_z;
-	float3 point;
-	point.x = pos[i].x;
-	point.y = pos[i].y;
-	point.z = pos[i].z;
-}
-
-__kernel void calc_dist(__global vec3 *pos, float3 cursor)
-{
-	int i = get_global_id(0);
-
-	pos[i].d = sqrt((cursor.x - pos[i].x) * (cursor.x - pos[i].x) + (cursor.y - pos[i].y) * (cursor.y - pos[i].y) + (cursor.z - pos[i].z) * (cursor.z - pos[i].z));
 }
